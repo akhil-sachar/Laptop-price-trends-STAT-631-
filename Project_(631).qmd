@@ -1,0 +1,155 @@
+---
+title: "Project_(631)"
+format: pdf
+editor: visual
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Our research question is - **"How do Storage Capacity and RAM Size affect laptop price, and is there an interaction between them?"**
+
+
+Loading the dataset and necessary libraries
+```{r}
+
+laptop <- read.table("Laptop_price.csv", header = TRUE, sep = ",")
+
+library(dplyr)
+library(ggplot2)
+library(car)
+```
+Displaying summary statistics and first 6 rows of the dataset
+```{r}
+summary(laptop)
+head(laptop)
+```
+
+
+Converting columns to factors for categorical analysis
+
+```{r}
+laptop <- laptop %>%
+  mutate(across(c(Storage_Capacity, RAM_Size, Brand), as.factor))
+```
+Checking whether our dataset is balanced or not
+```{r}
+tapply(laptop[-1,]$Price,
+laptop[-1,]$Storage_Capacity:laptop[-1,]$RAM_Size, length)
+```
+Checking structure and data types of the dataset
+```{r}
+str(laptop)
+```
+
+
+
+
+```{r}
+
+
+# Summarize mean price by group
+summary_data <- laptop %>%
+  group_by(RAM_Size, Storage_Capacity) %>%
+  summarise(mean_price = mean(Price, na.rm = TRUE), .groups = "drop")
+
+# Interaction plot
+ggplot(summary_data, aes(x = RAM_Size, y = mean_price, color = Storage_Capacity, group = Storage_Capacity)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) +
+  theme_minimal() +
+  labs(title = "Interaction Plot: RAM Size × Storage Capacity",
+       x = "RAM Size",
+       y = "Mean Price",
+       color = "Storage Capacity")
+
+```
+
+Boxplot to visualize distribution of Price by Storage_Capacity and RAM_Size
+```{r}
+ggplot(laptop, aes(x = Storage_Capacity, y = Price, fill = RAM_Size)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Effect of Factors on Dependent Variable",
+       x = "Storage Capacity",
+       y = "Price",
+       fill = "RAM Size")
+```
+
+
+
+Fitting Two-Way ANOVA: Storage_Capacity and RAM_Size
+```{r}
+# Fitting Two-Way ANOVA: Storage_Capacity and RAM_Size
+model <- aov(Price ~ Storage_Capacity * RAM_Size, data = laptop)
+Anova(model,type=2)
+```
+
+A **p-value \< 0.05** indicates a **statistically significant** effect.\
+\
+For both Storage_Capacity and RAM_Size have p value less than 0.05.
+
+-   **Storage_Capacity** has a strong and significant impact on laptop price.
+
+-   **RAM_Size** also has a strong and significant impact on laptop price.
+
+
+
+
+Fitting updated Two-Way ANOVA: Storage_Capacity and RAM_Size
+```{r}
+# Fitting updated Two-Way ANOVA: Storage_Capacity and RAM_Size
+redmodel <- aov(Price ~ Storage_Capacity + RAM_Size, data = laptop)
+Anova(redmodel,type=2)
+```
+Shapiro-Wilk test for normality of residuals
+```{r}
+shapiro.test(residuals(redmodel))
+
+```
+
+
+
+Plotting to check for assumptions
+```{r}
+plot(redmodel)
+
+
+```
+
+-   **Residuals vs Fitted** - linearity and equal variance (homoscedasticity) assumptions are met
+
+-   **Q-Q plot** - Normality assumption is satisfied.
+
+-   **Scale-Location** - Homoscedasticity assumption satisfied.
+
+-   **Residuals vs Leverage** - No concerning outliers.
+
+-   **All assumptions are satisfied**.
+
+
+Levene’s test to check equality of variances
+```{r}
+
+leveneTest(Price ~ Storage_Capacity * RAM_Size, data = laptop)
+
+#Equal variances are satisfied
+```
+
+**Residuals are normal**
+
+Q-Q plot for reduced model residuals
+```{r}
+qqPlot(resid(redmodel))
+```
+
+
+Tukey HSD test for pairwise comparisons among groups
+```{r}
+tukey <- TukeyHSD(redmodel)
+tukey
+```
+
+

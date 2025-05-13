@@ -1,0 +1,375 @@
+---
+title: "631 Paper"
+format: pdf
+editor: visual
+---
+
+\vspace*{\fill}
+\begin{center}
+    \LARGE \textbf {Affect of RAM and Storage on Laptop prices}
+    \LARGE \textbf {Mariyam Anna Jose},
+    \LARGE \textbf {Akhil Sachar}
+\end{center}
+\vspace*{\fill}
+
+\newpage
+
+\tableofcontents
+
+\newpage
+
+---
+title: "Project_(631)"
+format: pdf
+editor: visual
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE, echo=FALSE, results='hide', fig.show='hide'}
+
+laptop <- read.table("Laptop_price.csv", header = TRUE, sep = ",")
+
+library(dplyr)
+library(ggplot2)
+library(car)
+```
+
+```{r, echo=FALSE, results='hide', fig.show='hide'}
+summary(laptop)
+head(laptop)
+```
+
+
+
+```{r, echo=FALSE, results='hide', fig.show='hide'}
+laptop <- laptop %>%
+  mutate(across(c(Storage_Capacity, RAM_Size, Brand), as.factor))
+```
+
+```{r, echo=FALSE, results='hide', fig.show='hide'}
+tapply(laptop[-1,]$Price,
+laptop[-1,]$Storage_Capacity:laptop[-1,]$RAM_Size, length)
+```
+
+```{r, echo=FALSE, results='hide', fig.show='hide'}
+str(laptop)
+```
+
+
+
+
+
+
+
+
+
+
+
+## 1 Introduction
+
+Laptops vary widely in price based on their technical specifications. Two of the most influential hardware components that contribute to price are *RAM size* and *storage capacity*. This study investigates the impact of these two features on laptop pricing. The primary research question is,
+
+*"How do Storage Capacity and RAM Size affect laptop price , and is there an interaction between them".*
+*Hypothesis:*
+
+-   *Null Hypothesis ($H_0$) **:* There is no significant effect of RAM size or storage capacity on laptop price.
+
+-   *Alternative Hypothesis ($H_1$) **:* There is a significant effect of RAM size and/or storage capacity on laptop price.
+
+#### *Dataset Description*
+
+The dataset, named Laptop_price.csv, was obtained from Kaggle.com. It contains *1,000 observations* and includes the following variables:
+
+-   *Brand* (5 levels)
+
+-   *RAM_Size* (4 levels: 4GB, 8GB, 16GB, 32GB)
+
+-   *Storage_Capacity* (3 levels: 256GB, 512GB, 1000GB)
+
+-   *Price* (continuous response variable)
+
+The dataset is *unbalanced*, That means all combinations of RAM and storage levels have not the same number of observations.
+
+\newpage
+
+## 3. Results and Interpretation
+
+### 3.1 Visualizations and Interpretation
+
+
+```{r, echo=FALSE}
+ggplot(laptop, aes(x = Storage_Capacity, y = Price, fill = RAM_Size)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Effect of Factors on Dependent Variable",
+       x = "Storage Capacity",
+       y = "Price",
+       fill = "RAM Size")
+```
+-   *Boxplot:* Displayed how laptop prices increase with both RAM size and storage capacity. Within each storage level, higher RAM was associated with higher price. The distinct separation between boxplots suggests statistically meaningful differences.
+
+```{r, echo=FALSE}
+
+
+# Summarize mean price by group
+summary_data <- laptop %>%
+  group_by(RAM_Size, Storage_Capacity) %>%
+  summarise(mean_price = mean(Price, na.rm = TRUE), .groups = "drop")
+
+# Interaction plot
+ggplot(summary_data, aes(x = RAM_Size, y = mean_price, color = Storage_Capacity, group = Storage_Capacity)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) +
+  theme_minimal() +
+  labs(title = "Interaction Plot: RAM Size × Storage Capacity",
+       x = "RAM Size",
+       y = "Mean Price",
+       color = "Storage Capacity")
+
+```
+
+-   *Interaction Plot:* Showed parallel lines for each storage level as RAM increases, confirming that there is no significant interaction. RAM size and storage capacity each contribute to the price of a laptop independently. The effect of one does not depend on the level of the other — both independently raise the price.
+
+### 3.2 Two-Way Type Two ANOVA
+
+We performed a Two-Way Type 2 ANOVA to assess the effects of RAM size and storage capacity on laptop price. Additionally we are also looking to find out the interaction effect between RAM size and storage capacity. We have decided to use type two ANOVA because the data we are using is unbalanced. Moreover we have evaluated the model assumptions and performed post-hoc analysis using Tukey’s Honest Significant Difference (HSD) test to determine which group differences were statistically significant.
+
+### 3.3 Main Effects and Interaction
+
+From the ANOVA output, we observed the following:
+
+| Factor                    | F-value | P-value  |
+|---------------------------|---------|----------|
+| Storage Capacity          | 722,500 | \< 2e-16 |
+| RAM Size                  | 1,692   | \< 2e-16 |
+| Storage × RAM Interaction | 0.204   | 0.9756   |
+
+-   The p-values for both RAM size and storage capacity are well below 0.05, indicating that each has a statistically significant and strong effect on laptop price.
+
+-   The interaction term, however, has a p-value of 0.9756, which is much higher than the 0.05 threshold. This clearly shows that the combined effect of RAM and storage on price is not statistically significant.
+
+-   As a result of this finding, we updated our model to an additive model, which assumes that the effects of RAM and storage are independent and additive, not multiplicative.
+
+From the updated ANOVA model output, we observed the following:
+
+| Factor           | F-value | P-value  |
+|------------------|---------|----------|
+| Storage Capacity | 723,923 | \< 2e-16 |
+| RAM Size         | 1,700.3 | \< 2e-16 |
+
+### 3.4 Model Assumptions
+
+To ensure the validity of the ANOVA results, we conducted diagnostic checks on model assumptions:
+
+-   The Shapiro-Wilk test produced a p-value greater than 0.05. This means we fail to reject the null hypothesis and conclude that the residuals are approximately normally distributed.
+
+-   Levene’s test also resulted in a p-value greater than 0.05, supporting the assumption of equal variances across groups.
+
+-   A QQ plot and Residuals vs Fitted Values plot confirmed that there were no significant deviations from normality or homoscedasticity.
+
+These checks validate the reliability of our ANOVA findings.
+
+### 3.5 Post-Hoc Analysis
+
+To explore specific group differences, we applied Tukey's HSD test:
+
+-   All pairwise comparisons between different storage capacities showed highly significant differences. This confirms that increasing storage, such as moving from 256GB to 512GB or from 512GB to 1TB, is strongly associated with a noticeable increase in laptop price.
+
+-   Comparisons across different RAM sizes also revealed statistically significant differences, although the magnitude of the effect was somewhat less pronounced compared to storage capacity.
+
+
+## 4. Discussion
+
+### 4.1 Conclusion
+
+The results of our study provide compelling evidence that both RAM size and storage capacity have statistically significant and independent effects on laptop pricing. This means that each of these components individually contributes to the price of a laptop, and the pricing impact of one does not vary based on the level of the other. In practical terms, upgrading RAM or storage will result in an increase in price, regardless of the configuration of the other component. For instance, increasing RAM will raise the price irrespective of whether the device has a small or large storage capacity, and vice versa.
+
+This finding simplifies the modeling of laptop pricing. It implies that manufacturers and retailers likely apply an additive strategy to these hardware specifications. Each feature contributes a separate and measurable cost to the final price, without modifying the impact of the other.
+
+From a business perspective, this insight is especially valuable for new manufacturers entering the market. It allows them to adopt a straightforward pricing approach for their product lines. Understanding that consumers are generally willing to pay more for increased RAM or storage capacity—independently—enables these manufacturers to design pricing structures that reflect clear hardware value propositions. For example, offering configurations with 8GB, 16GB, and 32GB of RAM can each carry a distinct price premium, without needing to account for variations in storage when determining that premium.
+
+Likewise, the results are beneficial from a consumer standpoint. The independent, additive pricing model enables consumers to better predict how much more they would need to pay for specific hardware upgrades. This transparency aids in making more informed purchasing decisions, as buyers can clearly see the cost implications of opting for higher storage or additional RAM. In turn, this predictability fosters a more competitive and consumer-friendly market environment.
+
+Overall, the independence of RAM and storage effects on pricing reinforces the practicality of linear modeling in hardware pricing and opens pathways for both manufacturers and consumers to make data-driven decisions.
+
+### 4.2 Limitations and Future Scope
+
+We did not take into account several other variables that could also impact laptop prices:
+
+-   Processor performance (e.g., Intel Core i5 vs. i7, AMD Ryzen series) is a major contributor to a laptop’s overall performance and market price.
+
+-   Graphics capability, particularly discrete GPUs for gaming or professional use (e.g., NVIDIA, AMD), can significantly raise a laptop’s cost.
+
+-   Release date is another critical factor, as newer models typically come with a premium price due to updated features and newer technology.
+
+Future Work:
+
+-   We can use a balanced dataset. A balanced dataset ensures that all categories are equally represented.This reduces bias in the results and improves the findings across different types of laptops.
+
+-   We can explore the effect of brand on price. The brand-related factors can cause significant price variation, even among laptops with similar technical specifications.
+
+## 5. References
+
+1.  Dataset used was from kaggle and the link is <https://www.kaggle.com/code/msjahid/exploring-laptop-price-trends/input>
+
+2.  Notes from STAT-631 (Dr. Jiyoun Myung) at CSU East Bay.
+
+### 6. Appendix
+
+The presentation and R code with plots, diagnostic tests and our resulting output is given at <https://github.com/akhil-sachar/Laptop-price-trends-STAT-631->.
+
+
+The R code we used is given below:-
+
+
+
+Our research question is - **"How do Storage Capacity and RAM Size affect laptop price, and is there an interaction between them?"**
+
+
+Loading the dataset and necessary libraries
+```{r}
+
+laptop <- read.table("Laptop_price.csv", header = TRUE, sep = ",")
+
+library(dplyr)
+library(ggplot2)
+library(car)
+```
+Displaying summary statistics and first 6 rows of the dataset
+```{r}
+summary(laptop)
+head(laptop)
+```
+
+
+Converting columns to factors for categorical analysis
+
+```{r}
+laptop <- laptop %>%
+  mutate(across(c(Storage_Capacity, RAM_Size, Brand), as.factor))
+```
+Checking whether our dataset is balanced or not
+```{r}
+tapply(laptop[-1,]$Price,
+laptop[-1,]$Storage_Capacity:laptop[-1,]$RAM_Size, length)
+```
+Checking structure and data types of the dataset
+```{r}
+str(laptop)
+```
+
+
+
+
+```{r}
+
+
+# Summarize mean price by group
+summary_data <- laptop %>%
+  group_by(RAM_Size, Storage_Capacity) %>%
+  summarise(mean_price = mean(Price, na.rm = TRUE), .groups = "drop")
+
+# Interaction plot
+ggplot(summary_data, aes(x = RAM_Size, y = mean_price, color = Storage_Capacity, group = Storage_Capacity)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) +
+  theme_minimal() +
+  labs(title = "Interaction Plot: RAM Size × Storage Capacity",
+       x = "RAM Size",
+       y = "Mean Price",
+       color = "Storage Capacity")
+
+```
+
+Boxplot to visualize distribution of Price by Storage_Capacity and RAM_Size
+```{r}
+ggplot(laptop, aes(x = Storage_Capacity, y = Price, fill = RAM_Size)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Effect of Factors on Dependent Variable",
+       x = "Storage Capacity",
+       y = "Price",
+       fill = "RAM Size")
+```
+
+
+
+Fitting Two-Way ANOVA: Storage_Capacity and RAM_Size
+```{r}
+# Fitting Two-Way ANOVA: Storage_Capacity and RAM_Size
+model <- aov(Price ~ Storage_Capacity * RAM_Size, data = laptop)
+Anova(model,type=2)
+```
+
+A **p-value \< 0.05** indicates a **statistically significant** effect.\
+\
+For both Storage_Capacity and RAM_Size have p value less than 0.05.
+
+-   **Storage_Capacity** has a strong and significant impact on laptop price.
+
+-   **RAM_Size** also has a strong and significant impact on laptop price.
+
+
+
+
+Fitting updated Two-Way ANOVA: Storage_Capacity and RAM_Size
+```{r}
+# Fitting updated Two-Way ANOVA: Storage_Capacity and RAM_Size
+redmodel <- aov(Price ~ Storage_Capacity + RAM_Size, data = laptop)
+Anova(redmodel,type=2)
+```
+Shapiro-Wilk test for normality of residuals
+```{r}
+shapiro.test(residuals(redmodel))
+
+```
+
+
+
+Plotting to check for assumptions
+```{r}
+plot(redmodel)
+
+
+```
+
+-   **Residuals vs Fitted** - linearity and equal variance (homoscedasticity) assumptions are met
+
+-   **Q-Q plot** - Normality assumption is satisfied.
+
+-   **Scale-Location** - Homoscedasticity assumption satisfied.
+
+-   **Residuals vs Leverage** - No concerning outliers.
+
+-   **All assumptions are satisfied**.
+
+
+Levene’s test to check equality of variances
+```{r}
+
+leveneTest(Price ~ Storage_Capacity * RAM_Size, data = laptop)
+
+#Equal variances are satisfied
+```
+
+**Residuals are normal**
+
+Q-Q plot for reduced model residuals
+```{r}
+qqPlot(resid(redmodel))
+```
+
+
+Tukey HSD test for pairwise comparisons among groups
+```{r}
+tukey <- TukeyHSD(redmodel)
+tukey
+```
+
+
+
